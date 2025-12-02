@@ -4,10 +4,10 @@ import json
 
 class ModelClass(ABC):
     @abstractmethod
-    def predict(self, case: list[str], visit_times: list[str]) -> tuple[float, list[float]]:
+    def predict(self, case: list[str], dates: list[str]) -> tuple[float, list[float]]:
         pass
 
-    def serialize(self, case: list[str], syn_prob: float, attn_weights: list[float], footer: dict):
+    def serialize(self, case: list[str], dates: list[str], syn_prob: float, attn_weights: list[float], footer: dict):
         """This function implements the Common Data Model v2"""
         output = {
             "nlp_output": {
@@ -28,6 +28,7 @@ class ModelClass(ABC):
                     "deidentification_pipeline_name": "",
                     "deidentification_pipeline_version": "",
                     "case": case,
+                    "dates": dates,
                     "nlp_processing_date": datetime.now().isoformat(),
                     "nlp_processing_pipeline_name": self.__class__.__name__,
                     "nlp_processing_pipeline_version": "1.0",

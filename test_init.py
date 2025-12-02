@@ -35,6 +35,7 @@ def main(case, dates):
     syn_prob, attn_weights = pipeline.predict(case, dates)
     return pipeline.serialize(
         case=case,
+        dates=dates,
         syn_prob=syn_prob,
         attn_weights=attn_weights,
         footer=random_footer

@@ -29,6 +29,7 @@ def infer_case(content: dict):
     footer = content.get('footer', {})
     serialized_output = pipeline.serialize(
         case=case,
+        dates=dates,
         syn_prob=syn_prob,
         attn_weights=attn_weights,
         footer=footer

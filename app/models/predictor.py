@@ -119,12 +119,12 @@ class PredictionPipeline(ModelClass):
     def predict(
             self,
             case: list[str],
-            visit_times: list[str]
+            dates: list[str]
         ) -> tuple[float, list[float]]:
 
         inputs = self.tokenizer(case, return_tensors='pt', max_length=self.cfg.max_length, truncation=True, padding='max_length')
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        visit_times_list = self.format_dates(visit_times)    
+        visit_times_list = self.format_dates(dates)    
         visit_times_tensor = torch.tensor(visit_times_list, dtype=torch.float32).to(self.device)
         outputs = self.model(inputs['input_ids'], inputs['attention_mask'], visit_times=visit_times_tensor)
         syn_prob = outputs.logits.softmax(dim=-1)[1].item()
@@ -132,7 +132,7 @@ class PredictionPipeline(ModelClass):
         return syn_prob, attn_list
     
     @staticmethod
-    def format_dates(visit_dates_str: list[str]) -> list[tuple[float, float]]:
+    def format_dates(dates_str: list[str]) -> list[tuple[float, float]]:
         """
         Convert one case's ordered string dates dates into two differnce arrays:
         - log_prev: log1p(delta since previous visit)  (first visit -> 0)
@@ -141,9 +141,9 @@ class PredictionPipeline(ModelClass):
         Inputs:
         list of string dates in this format: [10Jan2024, 9Apr2024, ...]
         Returns:
-        list of tuples [(log_prev0, log_start0), ...] length == len(visit_dates_str)
+        list of tuples [(log_prev0, log_start0), ...] length == len(dates_str)
         """
-        visit_dates = [datetime.strptime(d, "%d%b%Y") if d else None for d in visit_dates_str]
-        visit_dates_imp = date_linear_impute(visit_dates)
-        return dates_to_log_deltas(visit_dates_imp)
+        dates = [datetime.strptime(d, "%d%b%Y") if d else None for d in dates_str]
+        dates_imp = date_linear_impute(dates)
+        return dates_to_log_deltas(dates_imp)
         
