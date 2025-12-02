@@ -1,0 +1,6 @@
+*.pyc
+app/class_venv/*
+.git
+.gitignore
+.vscode
+README.md
