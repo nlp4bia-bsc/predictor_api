@@ -1,6 +1,6 @@
-# Classification Inference API
+# Prediction Inference API
 
-This is a Flask API that performs bert classification using any bert model of your preference. The model relies on having sotred the pretrained model in a cache direccotry  beforehand and having the finetuned model in a local directory. 
+This is a Flask API that performs prediction over many spanish clinical visits using any roberta model of your preference along with a LSTM, attention and classification head modules. The model relies on having trained the finetuned model beforehand and have it stored in a local directory (along with its config and tokenizer). An example can be found in [this huggingface model card](https://duckduckgo.com) 
 
 ## Prerequisites
 
@@ -18,11 +18,11 @@ git clone <repository-url>
 cd <repository-directory>
 ```
 
-2. Save the model in a cache directory, which by default, is in **app/models/hugginface_mirror**. You can change this path to be your hugginface cache dir by changing the path in **app/models/config/model_config.py** file.
+2. Save the model in a local directory.
 
 To do so from the terminal, go to the **app/models** directory and execute:
 ```bash
-huggingface-cli download <pretrained_model_hf_path> --cache-dir ./huggingface_mirror
+huggingface-cli download <pretrained_model_hf_path> --local-dir your/model/folder
 ```
 To do so using python you can execute
 ```python
@@ -30,12 +30,13 @@ from huggingface_hub import snapshot_download
 
 snapshot_download(
     repo_id="dmis-lab/biobert-base-cased-v1.1", 
-    cache_dir="./huggingface_mirror"
+    local_dir="your/model/folder"
 )
 ```
+You must configure this path in the **app/__init__.py**, in the `python LOCAL_MODEL_PATH` variable.
 
-3. Load you model --as a state dictionary-- into the app directory and reference the path in the aforementioned config path.
-**IMPORTANT:** This model must have been finetuned using the same model constructor  as referenced in the **app/models/model_baseline.py** file, in this case `BinaryBERT`
+3. Load you model --as a huggigface PreTrainedModel-- into the app directory and reference the path in the aforementioned config path.
+**IMPORTANT:** This model must have been finetuned using the same model constructor as referenced in the **app/models/model_baseline.py** file, in this case `LSTMBERT`
 
 4. Build and Run the Docker Container
 Build and run the service using Docker Compose:
@@ -62,7 +63,8 @@ curl --location 'http://0.0.0.0:8002/process_text' \
 --header 'Content-Type: application/json' \
 --data '{
   "content":{
-      "text": "A 64-year-old woman was admitted to our hospital because of dyspnea and chest pain for 3 month.",
+      "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
+      "dates": ['10Jan2024', '9Apr2024'],
       "footer": {
         "provider_id": "1",
         "person_id": "2",
@@ -80,7 +82,8 @@ Example Response
 ```json
 {
     "nlp_output":{
-        "class_logits":[0.9320483207702637,0.022358665242791176,0.028913727030158043,0.01667933166027069],
+        "syntomatic_probability": 0.5387078523635864,
+        "attention_weights": [0.49486151337623596, 0.5051384568214417],
         "processing_success":true,
         "record_metadata":{
             "admission_id":"3",
@@ -101,7 +104,8 @@ Example Response
             "record_type":"5",
             "report_language":"es",
             "report_section":"7",
-            "text":"A 74-year-old woman was admitted to our hospital because of dyspnea and chest pain for 1 month."
+            "case":["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
+            "dates": ['10Jan2024', '9Apr2024']
             }
         },
         "nlp_service_info":{"service_app_name":"NLP Classifier",
@@ -112,7 +116,7 @@ Example Response
 2. /process_bulk - Process Multiple Texts
 Method: POST
 
-This endpoint processes multiple texts at once, applying NER using the dictionary model to each text.
+This endpoint processes multiple cases at once.
 
 Example Request
 
@@ -122,7 +126,8 @@ curl --location 'http://0.0.0.0:8002/process_bulk' \
 --data '{
   "content": [
     {
-      "text": "A 74-year-old woman was admitted to our hospital because of dyspnea and chest pain for 1 month.",
+      "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
+      "dates": ['10Jan2024', '9Apr2024'],
       "footer": {
         "provider_id": "1",
         "person_id": "2",
@@ -134,17 +139,17 @@ curl --location 'http://0.0.0.0:8002/process_bulk' \
       }
     },
     {
-      "text": "A 6-year-old man was admitted to our hospital because of metastatic tumor.",
+      "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
+      "dates": ['10Jan2024', '9Apr2024'],
       "footer": {
-        "provider_id": "8",
-        "person_id": "9",
-        "visit_detail_id": "10",
-        "note_id": "11",
-        "note_type_concept_id": "12",
-        "note_datetime": "13",
-        "note_title": "14"
+        "provider_id": "1",
+        "person_id": "2",
+        "visit_detail_id": "3",
+        "note_id": "4",
+        "note_type_concept_id": "5",
+        "note_datetime": "6",
+        "note_title": "7"
       }
-
     }
   ]
 }'
@@ -154,72 +159,7 @@ Example Response
 
 ```json
 [
-    {
-        "nlp_output":{
-            "class_logits":[0.9320483207702637,0.022358665242791176,0.028913727030158043,0.01667933166027069],
-            "processing_success":true,
-            "record_metadata":{
-                "admission_id":"3",
-                "clinical_site_id":"1",
-                "deidentification_pipeline_name":"",
-                "deidentification_pipeline_version":"",
-                "deidentified":"no",
-                "nlp_processing_date":"2025-06-18T13:34:45.985687",
-                "nlp_processing_pipeline_name":"PredictionPipeline",
-                "nlp_processing_pipeline_version":"1.0",
-                "patient_id":"2",
-                "record_character_encoding":"UTF-8",
-                "record_creation_date":"6",
-                "record_extraction_date":"2025-06-18T13:34:45.985685",
-                "record_format":"json",
-                "record_id":"4",
-                "record_lastupdate_date":"2025-06-18T13:34:45.985676",
-                "record_type":"5",
-                "report_language":"es",
-                "report_section":"7",
-                "text":"A 74-year-old woman was admitted to our hospital because of dyspnea and chest pain for 1 month."
-            }
-        },
-        "nlp_service_info":{
-            "service_app_name":"NLP Classifier",
-            "service_language":"es",
-            "service_model":"PredictionPipeline",
-            "service_version":"1.0"
-        }
-    },
-    {
-        "nlp_output":{
-            "class_logits":[0.8947045207023621,0.023609697818756104,0.04161892458796501,0.040066950023174286],
-            "processing_success":true,
-            "record_metadata":{
-                "admission_id":"10",
-                "clinical_site_id":"8",
-                "deidentification_pipeline_name":"",
-                "deidentification_pipeline_version":"",
-                "deidentified":"no",
-                "nlp_processing_date":"2025-06-18T13:34:46.082486",
-                "nlp_processing_pipeline_name":"PredictionPipeline",
-                "nlp_processing_pipeline_version":"1.0",
-                "patient_id":"9",
-                "record_character_encoding":"UTF-8",
-                "record_creation_date":"13",
-                "record_extraction_date":"2025-06-18T13:34:46.082484",
-                "record_format":"json",
-                "record_id":"11",
-                "record_lastupdate_date":"2025-06-18T13:34:46.082475",
-                "record_type":"12",
-                "report_language":"es",
-                "report_section":"14",
-                "text":"A 6-year-old man was admitted to our hospital because of metastatic tumor."
-            }
-        },
-        "nlp_service_info":{
-            "service_app_name":"NLP Classifier",
-            "service_language":"es",
-            "service_model":"PredictionPipeline",
-            "service_version":"1.0"
-        }
-    }
+    {}
 ]
 ```
 
@@ -233,6 +173,8 @@ docker-compose down
 When calling the endpoint, if an internal error occurs it is much more complicated to debug than if the inference pipeline is executed directly. To facilitate debugging in case of errors, I have added a testing file called `test_init.py` which you can call alongside a sample text like follows:
 
 ```bash
-python test_init.py --text "sample text"
+python test_init.py --cases "Paciente con fiebre y dolor de cabeza." "Se observa inflamación en las articulaciones." --dates "10Jan2024" "9Apr2024"
 ```
-Bear in mind you will have to create a virtual environment with the modules defined in `requirements.txt` installed
+Bear in mind you will have to create a virtual environment with the modules defined in `app/requirements.txt` installed in order to execute this python file.
+
+Additionally, I have also provided a jupyter notebook to debug and understand the flow of data and the model loading and unloading. (`test.ipynb`)
