@@ -64,7 +64,7 @@ curl --location 'http://0.0.0.0:8002/process_text' \
 --data '{
   "content":{
       "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
-      "dates": ['10Jan2024', '9Apr2024'],
+      "dates": ["10Jan2024", "9Apr2024"],
       "footer": {
         "provider_id": "1",
         "person_id": "2",
@@ -105,7 +105,7 @@ Example Response
             "report_language":"es",
             "report_section":"7",
             "case":["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
-            "dates": ['10Jan2024', '9Apr2024']
+            "dates": ["10Jan2024", "9Apr2024"]
             }
         },
         "nlp_service_info":{"service_app_name":"NLP Classifier",
@@ -127,7 +127,7 @@ curl --location 'http://0.0.0.0:8002/process_bulk' \
   "content": [
     {
       "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
-      "dates": ['10Jan2024', '9Apr2024'],
+      "dates": ["10Jan2024", "9Apr2024"],
       "footer": {
         "provider_id": "1",
         "person_id": "2",
@@ -140,7 +140,7 @@ curl --location 'http://0.0.0.0:8002/process_bulk' \
     },
     {
       "case": ["Paciente con fiebre y dolor de cabeza.", "Se observa inflamación en las articulaciones."],
-      "dates": ['10Jan2024', '9Apr2024'],
+      "dates": ["10Jan2024", "9Apr2024"],
       "footer": {
         "provider_id": "1",
         "person_id": "2",
