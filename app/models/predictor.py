@@ -10,16 +10,16 @@ from app.config.model_config import LSTMBERTConfig
 from app.models.utils import date_linear_impute, dates_to_log_deltas
 
 class LSTMBERT(RobertaForSequenceClassification):
-    # IMPORTANT: match HF expected signature: only `config` (other kwargs allowed)
     def __init__(self, config: LSTMBERTConfig, **kwargs):
         super().__init__(config)
         self.config = config
 
-        # Build backbone *without* loading weights here.
-        # (RobertaModel(config) creates the module structure that from_pretrained will fill.)
         self.roberta = RobertaModel(config)
 
-        lstm_input_dim = self.roberta.config.hidden_size + config.visit_time_dim
+        self.visit_time_proj_dim = getattr(self.config, "visit_time_proj", 0)
+        self.visit_feat_proj = torch.nn.Linear(2, self.visit_time_proj_dim)
+
+        lstm_input_dim = self.roberta.config.hidden_size + self.visit_time_proj_dim
 
         self.lstm = nn.LSTM(
             lstm_input_dim,
@@ -43,7 +43,7 @@ class LSTMBERT(RobertaForSequenceClassification):
         kwargs:
             input_ids: (V, S) long
             attention_mask: (V, S) long
-        visit_times: tensor (V, visit_time_dim) float
+        visit_times: tensor (V, visit_time_dim=2) float
         
         where V = number of visits in batch, S = max seq len per visit
         """
@@ -56,8 +56,8 @@ class LSTMBERT(RobertaForSequenceClassification):
         # Check visit_times shape if needed
         if visit_times is None:
             raise ValueError("You have to provide visit_times tensor")
-        if visit_times.shape != (V, self.config.visit_time_dim):
-            raise ValueError(f"visit_times shape must be (V, {self.config.visit_time_dim})")
+        if visit_times.shape != (V, 2):
+            raise ValueError("visit_times shape must be (V, 2)")
         
         # Process each visit through RoBERTa
         pooled_visits = []
@@ -75,10 +75,11 @@ class LSTMBERT(RobertaForSequenceClassification):
         proj = torch.cat(pooled_visits, dim=0)  # (V, hidden)
         
         # Concatenate visit times if provided
-        proj = torch.cat([proj, visit_times], dim=-1)  # (V, hidden + visit_time_dim)
+        visit_time_proj = self.visit_feat_proj(visit_times) # (V, visit_time_proj_dim)
+        proj = torch.cat([proj, visit_time_proj], dim=-1)  # (V, hidden + visit_time_proj_dim)
         
         # Add batch dimension for LSTM
-        proj = proj.unsqueeze(0)  # (1, V, hidden + visit_time_dim)
+        proj = proj.unsqueeze(0)  # (1, V, hidden + visit_time_proj_dim)
         
         # Run LSTM
         lstm_out, _ = self.lstm(proj)  # (1, V, 2*lstm_hidden)

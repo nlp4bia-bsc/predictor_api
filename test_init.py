@@ -2,13 +2,13 @@ import argparse
 
 from app.models.predictor import PredictionPipeline
 
-LOCAL_MODEL_PATH = "test"
+LOCAL_MODEL_PATH = "/PROJECTES/UBIOESDM/PATTERN_PROJECT_BKP_24_10_2025/CogStack-NiFi/ChagasPredictor/saved_models/lstm-attn/11"
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Run the script.")
 
     parser.add_argument(
-        "--cases",
+        "--case",
         nargs="+",
         help="Visit texts to process"
     )
@@ -18,6 +18,16 @@ def parse_arguments():
         nargs="+",
         help="String dates corresponding to each visit text ('4Jan2002' format)"
     )
+
+    parser.add_argument(
+        "--case-file",
+        help="txt file containing the case to execute"
+    )
+    parser.add_argument(
+        "--dates-file",
+        help="txt file containing the dates to execute"
+    )
+
     return parser.parse_args()
 
 def main(case, dates):
@@ -43,4 +53,16 @@ def main(case, dates):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    print(main(case=args.cases, dates=args.dates))
+    if args.case_file:
+        with open(args.case_file, encoding="utf-8") as f:
+            case = [line.rstrip("\n") for line in f]
+    else:
+        case = args.case
+
+    if args.dates_file:
+        with open(args.dates_file, encoding="utf-8") as f:
+            dates = [line.rstrip("\n") for line in f]
+    else:
+        dates = args.dates
+
+    print(main(case=case, dates=dates))

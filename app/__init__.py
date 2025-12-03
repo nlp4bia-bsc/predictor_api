@@ -6,7 +6,7 @@ from app.models.predictor import PredictionPipeline
 app = Flask(__name__)
 swagger = Swagger(app)
 
-LOCAL_MODEL_PATH = "test"
+LOCAL_MODEL_PATH = "/PROJECTES/UBIOESDM/PATTERN_PROJECT_BKP_24_10_2025/CogStack-NiFi/ChagasPredictor/saved_models/lstm-attn/11"
 
 pipeline = PredictionPipeline(local_model_path=LOCAL_MODEL_PATH)
 
